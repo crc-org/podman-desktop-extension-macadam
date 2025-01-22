@@ -1,5 +1,5 @@
 {
-  "name": "podman-desktop-extension-macadam",
+  "name": "macadam",
   "displayName": "Macadam",
   "description": "Integration for macadam: a tool to create/start linux VM on any OS",
   "version": "0.0.1",

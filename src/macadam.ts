@@ -34,6 +34,13 @@ export class Macadam {
   }
 
   /**
+   * Returns the macadam executable path
+   */
+  async getExecutable(): Promise<string> {
+    return await whereBinary(this.storagePath, this.getExecutableName());
+  }
+
+  /**
    * Return the version and the path of an executable
    * @param executable
    */

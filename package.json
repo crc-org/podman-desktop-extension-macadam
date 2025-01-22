@@ -10,6 +10,60 @@
     "podman-desktop": ">=1.10.0"
   },
   "main": "./dist/extension.js",
+  "contributes": {
+    "configuration": {
+      "title": "Macadam",
+      "properties": {
+        "macadam.factory.machine.name": {
+          "type": "string",
+          "default": "macadam-machine-default",
+          "scope": "ContainerProviderConnectionFactory",
+          "description": "Name"
+        },
+        "macadam.factory.machine.cpus": {
+          "type": "number",
+          "format": "cpu",
+          "default": "HOST_HALF_CPU_CORES",
+          "minimum": 1,
+          "maximum": "HOST_TOTAL_CPU",
+          "scope": "ContainerProviderConnectionFactory",
+          "description": "CPU(s)"
+        },
+        "macadam.factory.machine.memory": {
+          "type": "number",
+          "format": "memory",
+          "minimum": 1000000000,
+          "default": 4000000000,
+          "maximum": "HOST_TOTAL_MEMORY",
+          "scope": "ContainerProviderConnectionFactory",
+          "step": 500000000,
+          "description": "Memory"
+        },
+        "macadam.factory.machine.diskSize": {
+          "type": "number",
+          "format": "diskSize",
+          "default": 100000000000,
+          "minimum": 10000000000,
+          "maximum": "HOST_TOTAL_DISKSIZE",
+          "step": 500000000,
+          "scope": "ContainerProviderConnectionFactory",
+          "description": "Disk size"
+        },
+        "macadam.factory.machine.image-path": {
+          "type": "string",
+          "format": "file",
+          "scope": "ContainerProviderConnectionFactory",
+          "description": "Image Path (Optional)"
+        },
+        "macadam.factory.machine.image-uri": {
+          "type": "string",
+          "scope": "ContainerProviderConnectionFactory",
+          "description": "Image URL or image reference (Optional)",
+          "placeholder": "Use 'registry/org/image:version' for image reference"
+        }
+      }
+    }
+  },
   "scripts": {
     "build": "vite build",
     "test": "vitest run --coverage",

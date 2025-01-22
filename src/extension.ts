@@ -31,7 +31,6 @@ export interface BinaryInfo {
 }
 
 export async function activate(extensionContext: extensionApi.ExtensionContext): Promise<void> {
-  //const telemetryLogger = extensionApi.env.createTelemetryLogger();
   const macadam = new Macadam(extensionContext.storagePath);
 
   let binary: BinaryInfo | undefined = undefined;
@@ -42,6 +41,7 @@ export async function activate(extensionContext: extensionApi.ExtensionContext):
     console.error(err);
   }
 
+  // create cli tool for the cliTool page in desktop
   const macadamCli = extensionApi.cli.createCliTool({
     name: MACADAM_CLI_NAME,
     images: {
@@ -55,4 +55,137 @@ export async function activate(extensionContext: extensionApi.ExtensionContext):
   });
 
   extensionContext.subscriptions.push(macadamCli);
+
+  await createProvider(extensionContext, macadam);
+}
+
+async function createProvider(extensionContext: extensionApi.ExtensionContext, macadam: Macadam): Promise<void> {
+  const providerOptions: extensionApi.ProviderOptions = {
+    name: 'Macadam',
+    id: 'macadam',
+    status: 'unknown',
+    images: {
+      icon: './icon.png',
+      logo: {
+        dark: './icon.png',
+        light: './icon.png',
+      },
+    },
+    emptyConnectionMarkdownDescription: MACADAM_MARKDOWN,
+  };
+
+  const provider = extensionApi.provider.createProvider(providerOptions);
+
+  extensionContext.subscriptions.push(provider);
+
+  // enable factory - only on mac atm as i'm using it for testing
+  if (extensionApi.env.isMac) {
+    provider.setContainerProviderConnectionFactory({
+      create: (
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        params: { [key: string]: any },
+        logger?: extensionApi.Logger,
+        token?: extensionApi.CancellationToken,
+      ) => {
+        return createVM(macadam, params, logger, token);
+      },
+      creationDisplayName: 'Virtual machine',
+    });
+  }
+}
+
+async function createVM(
+  macadam: Macadam,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  params: { [key: string]: any },
+  logger?: extensionApi.Logger,
+  token?: extensionApi.CancellationToken,
+): Promise<void> {
+  const parameters = [];
+  parameters.push('init');
+
+  const telemetryRecords: Record<string, unknown> = {};
+  if (extensionApi.env.isMac) {
+    telemetryRecords.OS = 'mac';
+  }
+
+  /* To be uncommented when init command will support these flags
+  // cpu
+  if (params['macadam.factory.machine.cpus']) {
+    const cpusValue = params['macadam.factory.machine.cpus'];
+    parameters.push('--cpus');
+    parameters.push(cpusValue);
+    telemetryRecords.cpus = cpusValue;
+  }
+
+  // memory
+  if (params['macadam.factory.machine.memory']) {
+    parameters.push('--memory');
+    const memoryAsMiB = +params['macadam.factory.machine.memory'] / (1024 * 1024);
+    // Hyper-V requires VMs to have memory in 2 MB increments. So we round it
+    const roundedMemoryMiB = Math.floor((memoryAsMiB + 1) / 2) * 2;
+    parameters.push(roundedMemoryMiB.toString());
+    telemetryRecords.memory = params['macadam.factory.machine.memory'];
+  }
+
+  // disk size
+  if (params['macadam.factory.machine.diskSize']) {
+    parameters.push('--disk-size');
+    const diskAsGiB = +params['macadam.factory.machine.diskSize'] / (1024 * 1024 * 1024);
+    parameters.push(Math.floor(diskAsGiB).toString());
+    telemetryRecords.diskSize = params['macadam.factory.machine.diskSize'];
+  }
+
+  // image-path
+  if (params['macadam.factory.machine.image-path']) {
+    parameters.push('--image-path');
+    parameters.push(params['macadam.factory.machine.image-path']);
+    telemetryRecords.imagePath = 'custom';
+  } else if (params['macadam.factory.machine.image-uri']) {
+    const imageUri = params['macadam.factory.machine.image-uri'].trim();
+    parameters.push('--image-path');
+    if (imageUri.startsWith('https://') || imageUri.startsWith('http://')) {
+      parameters.push(imageUri);
+      telemetryRecords.imagePath = 'custom-url';
+    } else {
+      parameters.push(`docker://${imageUri}`);
+      telemetryRecords.imagePath = 'custom-registry';
+    }
+  }
+
+  if (!telemetryRecords.imagePath) {
+    telemetryRecords.imagePath = 'default';
+  }
+  */
+
+  // name at the end
+  if (params['macadam.factory.machine.name']) {
+    parameters.push(params['macadam.factory.machine.name']);
+    telemetryRecords.customName = params['macadam.factory.machine.name'];
+    telemetryRecords.defaultName = false;
+  } else {
+    telemetryRecords.defaultName = true;
+  }
+
+  const startTime = performance.now();
+  try {
+    const macadamCli = await macadam.getExecutable();
+    await extensionApi.process.exec(macadamCli, parameters, {
+      logger,
+      token,
+    });
+  } catch (error) {
+    telemetryRecords.error = error;
+    const runError = error as extensionApi.RunError;
+
+    let errorMessage = runError.name ? `${runError.name}\n` : '';
+    errorMessage += runError.message ? `${runError.message}\n` : '';
+    errorMessage += runError.stderr ? `${runError.stderr}\n` : '';
+    throw errorMessage || error;
+  } finally {
+    const endTime = performance.now();
+    telemetryRecords.duration = endTime - startTime;
+    //in the POC we do not send any telemetry
+    //sendTelemetryRecords('macadam.machine.init', telemetryRecords, false);
+  }
 }

@@ -91,3 +91,12 @@ function getEnvPATH(): string | undefined {
     return env.PATH;
   }
 }
+
+export function getErrorMessage(err: unknown): string {
+  if (err && typeof err === 'object' && 'message' in err) {
+    return String(err.message);
+  } else if (typeof err === 'string') {
+    return err;
+  }
+  return '';
+}

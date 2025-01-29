@@ -14,11 +14,18 @@
     "configuration": {
       "title": "Macadam",
       "properties": {
-        "macadam.factory.machine.name": {
+        "macadam.factory.machine.image-path": {
           "type": "string",
-          "default": "macadam-machine-default",
+          "format": "file",
           "scope": "ContainerProviderConnectionFactory",
-          "description": "Name"
+          "default": "/Users/luca/.crc/machines/crc/crc_test.img",
+          "description": "Image Path (Optional)"
+        },
+        "macadam.factory.machine.image-uri": {
+          "type": "string",
+          "scope": "ContainerProviderConnectionFactory",
+          "description": "Image URL or image reference (Optional)",
+          "placeholder": "Use 'registry/org/image:version' for image reference"
         },
         "macadam.factory.machine.cpus": {
           "type": "number",
@@ -48,18 +55,6 @@
           "step": 500000000,
           "scope": "ContainerProviderConnectionFactory",
           "description": "Disk size"
-        },
-        "macadam.factory.machine.image-path": {
-          "type": "string",
-          "format": "file",
-          "scope": "ContainerProviderConnectionFactory",
-          "description": "Image Path (Optional)"
-        },
-        "macadam.factory.machine.image-uri": {
-          "type": "string",
-          "scope": "ContainerProviderConnectionFactory",
-          "description": "Image URL or image reference (Optional)",
-          "placeholder": "Use 'registry/org/image:version' for image reference"
         }
       }
     }

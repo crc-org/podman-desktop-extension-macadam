@@ -8,19 +8,25 @@ importers:
 
   .:
     dependencies:
+      '@podman-desktop/api':
+        specifier: ^1.16.0
+        version: 1.16.0
       semver:
         specifier: ^7.6.0
         version: 7.6.3
+      ssh2:
+        specifier: ^1.16.0
+        version: 1.16.0
     devDependencies:
       '@eslint/compat':
         specifier: ^1.2.5
         version: 1.2.5(eslint@9.18.0(jiti@1.21.7))
-      '@podman-desktop/api':
-        specifier: 1.14.2
-        version: 1.14.2
       '@types/node':
         specifier: ^20
         version: 20.17.14
+      '@types/ssh2':
+        specifier: ^1.15.4
+        version: 1.15.4
       '@typescript-eslint/eslint-plugin':
         specifier: ^7.0.0
         version: 7.18.0(@typescript-eslint/parser@6.21.0(eslint@9.18.0(jiti@1.21.7))(typescript@5.7.3))(eslint@9.18.0(jiti@1.21.7))(typescript@5.7.3)
@@ -1021,8 +1027,8 @@ packages:
   '@podman-desktop/api@1.13.0-202409181313-78725a6565':
     resolution: {integrity: sha512-tsgjYU8bXAO9QlED6J+aUPOYXA1Nw1no6CsTTkFaZKVmL3B+jQwNxPJcVAHTz9anmqwITiEtQDpopVMg2s2buQ==}
 
-  '@podman-desktop/api@1.14.2':
-    resolution: {integrity: sha512-s/f0mpgnhmVNAz3nhQ39Ce+36nnlEah3X3pQEKOlPuGn00eM3fHT3TOhcHvy4xURLXljn/mK4gUABofRVXblng==}
+  '@podman-desktop/api@1.16.0':
+    resolution: {integrity: sha512-ZgSN3oJkwzoz2oMBO77EA+7rugt7R7kL6JmVtq5siXrRqj2Nn9tj0KYMv/jzz9KhlaHI2/ELN0qLWLNFuvxu0Q==}
 
   '@rollup/rollup-android-arm-eabi@4.31.0':
     resolution: {integrity: sha512-9NrR4033uCbUBRgvLcBrJofa2KY9DzxL2UKZ1/4xA/mnTNyhZCWBuD8X3tPm1n4KxcgaraOYgrFKSgwjASfmlA==}
@@ -1204,6 +1210,9 @@ packages:
   '@types/keyv@3.1.4':
     resolution: {integrity: sha512-BQ5aZNSCpj7D6K2ksrRCTmKRLEpnPvWDiLPfoGyhZ++8YtiK9d/3DBKPJgry359X/P1PfruyYwvnvwFjuEiEIg==}
 
+  '@types/node@18.19.74':
+    resolution: {integrity: sha512-HMwEkkifei3L605gFdV+/UwtpxP6JSzM+xFk2Ia6DNFSwSVBRh9qp5Tgf4lNFOMfPVuU0WnkcWpXZpgn5ufO4A==}
+
   '@types/node@20.17.14':
     resolution: {integrity: sha512-w6qdYetNL5KRBiSClK/KWai+2IMEJuAj+EujKCumalFOwXtvOXaEan9AuwcRID2IcOIAWSIfR495hBtgKlx2zg==}
 
@@ -1215,6 +1224,9 @@ packages:
 
   '@types/semver@7.5.8':
     resolution: {integrity: sha512-I8EUhyrgfLrcTkzV3TSsGyl1tSuPrEDzr0yd5m90UgNxQkyDXULk3b6MlQqTCpZpNtWe1K0hzclnZkTcLBe2UQ==}
+
+  '@types/ssh2@1.15.4':
+    resolution: {integrity: sha512-9JTQgVBWSgq6mAen6PVnrAmty1lqgCMvpfN+1Ck5WRUsyMYPa6qd50/vMJ0y1zkGpOEgLzm8m8Dx/Y5vRouLaA==}
 
   '@types/yargs-parser@21.0.3':
     resolution: {integrity: sha512-I4q9QU9MQv4oEOz4tAHJtNz1cwuLxn2F3xcc2iV5WdqLPpUnj30aUuxt1mAxYTG+oe8CZMV/+6rU4S4gRDzqtQ==}
@@ -1568,6 +1580,9 @@ packages:
     resolution: {integrity: sha512-BNoCY6SXXPQ7gF2opIP4GBE+Xw7U+pHMYKuzjgCN3GwiaIR09UUeKfheyIry77QtrCBlC0KK0q5/TER/tYh3PQ==}
     engines: {node: '>= 0.4'}
 
+  asn1@0.2.6:
+    resolution: {integrity: sha512-ix/FxPn0MDjeyJ7i/yoHGFt/EX6LyNbxSEhPPXODPL+KB0VPk86UYfL0lMdy+KCnv+fmvIzySwaK5COwqVbWTQ==}
+
   assertion-error@1.1.0:
     resolution: {integrity: sha512-jgsaNduz+ndvGyFt3uSuWqvy4lCnIJiovtouQN5JZHOKCS2QuhEdbcQHFhVksz2N2U9hXJo8odG7ETyWlEeuDw==}
 
@@ -1604,6 +1619,9 @@ packages:
   balanced-match@1.0.2:
     resolution: {integrity: sha512-3oSeUO0TMV67hN1AmbXsK4yaqU7tjiHlbxRDZOpH0KW9+CeX4bRAaX0Anxt0tx2MrpRpWwQaPwIlISEJhYU5Pw==}
 
+  bcrypt-pbkdf@1.0.2:
+    resolution: {integrity: sha512-qeFIXtP4MSoi6NLqO12WfqARWWuCKi2Rn/9hJLEmtB5yTNr9DqFWkJRCf2qShWzPeAMRnOgCrq0sg/KLv5ES9w==}
+
   binary-extensions@2.3.0:
     resolution: {integrity: sha512-Ceh+7ox5qe7LJuLHoY0feh3pHuUDHAcRUeyL2VYghZwfpkNIy/+8Ocg0a3UuSoYzavmylwuLWQOf3hl0jjMMIw==}
     engines: {node: '>=8'}
@@ -1629,6 +1647,10 @@ packages:
 
   buffer-crc32@0.2.13:
     resolution: {integrity: sha512-VO9Ht/+p3SN7SKWqcrgEzjGbRSJYTx+Q1pTQC0wrWqHx0vpJraQ6GtHx8tvcg1rlK1byhU5gccxgOgj7B0TDkQ==}
+
+  buildcheck@0.0.6:
+    resolution: {integrity: sha512-8f9ZJCUXyT1M35Jx7MkBgmBMo3oHTTBIPLiY9xyL0pl3T5RwcPEY8cUHr5LBNfu/fk6c2T4DJZuVM/8ZZT2D2A==}
+    engines: {node: '>=10.0.0'}
 
   builtin-modules@3.3.0:
     resolution: {integrity: sha512-zhaCDicdLuWN5UbN5IMnFqNMhNfo919sH85y2/ea+5Yg9TsTkeZxpL+JLbp6cgYFS4sRLp3YV4S6yDuqVWHYOw==}
@@ -1745,6 +1767,10 @@ packages:
 
   core-js-compat@3.40.0:
     resolution: {integrity: sha512-0XEDpr5y5mijvw8Lbc6E5AkjrHfp7eEoPlu36SWeAbcL8fn1G1ANe8DBlo2XoNN89oVpxWwOjYIPVzR4ZvsKCQ==}
+
+  cpu-features@0.0.10:
+    resolution: {integrity: sha512-9IkYqtX3YHPCzoVg1Py+o9057a3i0fp7S530UWokCSaFVTc7CwXPRiOjRjBQQ18ZCNafx78YfnG+HALxtVmOGA==}
+    engines: {node: '>=10.0.0'}
 
   cross-spawn@7.0.6:
     resolution: {integrity: sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA==}
@@ -2706,6 +2732,9 @@ packages:
   mz@2.7.0:
     resolution: {integrity: sha512-z81GNO7nnYMEhrGh9LeymoE4+Yr0Wn5McHIZMK5cfQCl+NDX08sCZgUc9/6MHni9IWuFLm1Z3HTCXu2z9fN62Q==}
 
+  nan@2.22.0:
+    resolution: {integrity: sha512-nbajikzWTMwsW+eSsNm3QwlOs7het9gGJU5dDZzRTQGk03vyBOauxgI4VakDzE0PtsGTmXPsXTbbjVhRwR5mpw==}
+
   nanoid@3.3.8:
     resolution: {integrity: sha512-WNLf5Sd8oZxOm+TzppcYk8gVOgP+l58xNy58D0nbUnOxOWRWvlcCV4kUF7ltmI6PsrLl/BgKEyS4mqsGChFN0w==}
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
@@ -3217,6 +3246,10 @@ packages:
   sprintf-js@1.1.3:
     resolution: {integrity: sha512-Oo+0REFV59/rz3gfJNKQiBlwfHaSESl1pcGyABQsnnIfWOFt6JNj5gCog2U6MLZ//IGYD+nA8nI+mTShREReaA==}
 
+  ssh2@1.16.0:
+    resolution: {integrity: sha512-r1X4KsBGedJqo7h8F5c4Ybpcr5RjyP+aWIG007uBPRjmdQWfEiVLzSK71Zji1B9sKxwaCvD8y8cwSkYrlLiRRg==}
+    engines: {node: '>=10.16.0'}
+
   stable-hash@0.0.4:
     resolution: {integrity: sha512-LjdcbuBeLcdETCrPn9i8AYAZ1eCtu4ECAWtP7UleOiZ9LzVxRzzUZEoZ8zB24nhkQnDWyET0I+3sWokSDS3E7g==}
 
@@ -3435,6 +3468,9 @@ packages:
     peerDependencies:
       typescript: '>=2.8.0 || >= 3.2.0-dev || >= 3.3.0-dev || >= 3.4.0-dev || >= 3.5.0-dev || >= 3.6.0-dev || >= 3.6.0-beta || >= 3.7.0-dev || >= 3.7.0-beta'
 
+  tweetnacl@0.14.5:
+    resolution: {integrity: sha512-KXXFFdAbFXY4geFIwoyNK+f5Z1b7swfXABfL7HXCmoIWMKU3dmS26672A4EeQtDzLKy7SXmfBu51JolvEKwtGA==}
+
   type-check@0.4.0:
     resolution: {integrity: sha512-XleUoc9uwGXqjWwXaUTZAmzMcFZ5858QA2vvx1Ur5xIcixXIP+8LnFDgRplU30us6teqdlskFfu+ae4K79Ooew==}
     engines: {node: '>= 0.8.0'}
@@ -3489,6 +3525,9 @@ packages:
   unbox-primitive@1.1.0:
     resolution: {integrity: sha512-nWJ91DjeOkej/TA8pXQ3myruKpKEYgqvpw9lz4OPHj/NWFNluYrjbz9j01CJ8yKQd2g4jFoOkINCTW2I5LEEyw==}
     engines: {node: '>= 0.4'}
+
+  undici-types@5.26.5:
+    resolution: {integrity: sha512-JlCMO+ehdEIKqlFxk6IfVoAUVmgz7cU7zD/h9XZ0qzeosSHmUJVOzSQvvYSYWXkFXC+IfLKSIffhv0sVZup6pA==}
 
   undici-types@6.19.8:
     resolution: {integrity: sha512-ve2KP6f/JnbPBFyobGHuerC9g1FYGn/F8n1LWTwNxCEzd6IfqTwUQcNXgEtmmQ6DlRrC1hrSrBnCZPokRrDHjw==}
@@ -4707,7 +4746,7 @@ snapshots:
 
   '@podman-desktop/api@1.13.0-202409181313-78725a6565': {}
 
-  '@podman-desktop/api@1.14.2': {}
+  '@podman-desktop/api@1.16.0': {}
 
   '@rollup/rollup-android-arm-eabi@4.31.0':
     optional: true
@@ -4862,6 +4901,10 @@ snapshots:
     dependencies:
       '@types/node': 20.17.14
 
+  '@types/node@18.19.74':
+    dependencies:
+      undici-types: 5.26.5
+
   '@types/node@20.17.14':
     dependencies:
       undici-types: 6.19.8
@@ -4873,6 +4916,10 @@ snapshots:
       '@types/node': 20.17.14
 
   '@types/semver@7.5.8': {}
+
+  '@types/ssh2@1.15.4':
+    dependencies:
+      '@types/node': 18.19.74
 
   '@types/yargs-parser@21.0.3': {}
 
@@ -5368,6 +5415,10 @@ snapshots:
       get-intrinsic: 1.2.7
       is-array-buffer: 3.0.5
 
+  asn1@0.2.6:
+    dependencies:
+      safer-buffer: 2.1.2
+
   assertion-error@1.1.0: {}
 
   assertion-error@2.0.1: {}
@@ -5406,6 +5457,10 @@ snapshots:
 
   balanced-match@1.0.2: {}
 
+  bcrypt-pbkdf@1.0.2:
+    dependencies:
+      tweetnacl: 0.14.5
+
   binary-extensions@2.3.0: {}
 
   boolean@3.2.0:
@@ -5432,6 +5487,9 @@ snapshots:
       update-browserslist-db: 1.1.2(browserslist@4.24.4)
 
   buffer-crc32@0.2.13: {}
+
+  buildcheck@0.0.6:
+    optional: true
 
   builtin-modules@3.3.0: {}
 
@@ -5559,6 +5617,12 @@ snapshots:
   core-js-compat@3.40.0:
     dependencies:
       browserslist: 4.24.4
+
+  cpu-features@0.0.10:
+    dependencies:
+      buildcheck: 0.0.6
+      nan: 2.22.0
+    optional: true
 
   cross-spawn@7.0.6:
     dependencies:
@@ -6680,6 +6744,9 @@ snapshots:
       object-assign: 4.1.1
       thenify-all: 1.6.0
 
+  nan@2.22.0:
+    optional: true
+
   nanoid@3.3.8: {}
 
   nanospinner@1.2.2:
@@ -7211,6 +7278,14 @@ snapshots:
   sprintf-js@1.1.3:
     optional: true
 
+  ssh2@1.16.0:
+    dependencies:
+      asn1: 0.2.6
+      bcrypt-pbkdf: 1.0.2
+    optionalDependencies:
+      cpu-features: 0.0.10
+      nan: 2.22.0
+
   stable-hash@0.0.4: {}
 
   stackback@0.0.2: {}
@@ -7428,6 +7503,8 @@ snapshots:
       tslib: 1.14.1
       typescript: 5.7.3
 
+  tweetnacl@0.14.5: {}
+
   type-check@0.4.0:
     dependencies:
       prelude-ls: 1.2.1
@@ -7494,6 +7571,8 @@ snapshots:
       has-bigints: 1.1.0
       has-symbols: 1.1.0
       which-boxed-primitive: 1.1.1
+
+  undici-types@5.26.5: {}
 
   undici-types@6.19.8: {}
 

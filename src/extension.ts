@@ -16,21 +16,22 @@
  * SPDX-License-Identifier: Apache-2.0
  ***********************************************************************/
 
+import * as path from 'node:path';
+
 import * as extensionApi from '@podman-desktop/api';
 
-import { Macadam } from './macadam';
-import * as path from 'node:path';
-import { getErrorMessage } from './utils';
 import { LoggerDelegator } from './logger';
+import { Macadam } from './macadam';
+import { ProviderConnectionShellAccessImpl } from './macadam-machine-stream';
+import { getErrorMessage } from './utils';
 
 const MACADAM_CLI_NAME = 'macadam';
 const MACADAM_DISPLAY_NAME = 'Macadam';
 const MACADAM_MARKDOWN = `Podman Desktop can help you run RHEL and other linux-based VM by using Macadam.\n\nMore information: Link to macadam here`;
-let stopLoop = false;
+const stopLoop = false;
 
 type StatusHandler = (name: string, event: extensionApi.ProviderConnectionStatus) => void;
 const macadamMachinesInfo = new Map<string, MachineInfo>();
-const containerProviderConnections = new Map<string, extensionApi.ContainerProviderConnection>();
 const currentConnections = new Map<string, extensionApi.Disposable>();
 
 const listeners = new Set<StatusHandler>();
@@ -83,7 +84,7 @@ export async function activate(extensionContext: extensionApi.ExtensionContext):
 
   const provider = await createProvider(extensionContext, macadam);
 
-  monitorMachines(macadam, provider).catch((error: unknown) => {
+  monitorMachines(macadam, provider, extensionContext).catch((error: unknown) => {
     console.error('Error while monitoring machines', error);
   });
 
@@ -101,8 +102,6 @@ export async function activate(extensionContext: extensionApi.ExtensionContext):
   });
 
   extensionContext.subscriptions.push(macadamCli);
-
-  
 }
 
 async function timeout(time: number): Promise<void> {
@@ -188,6 +187,7 @@ async function registerProviderFor(
   provider: extensionApi.Provider,
   machineInfo: MachineInfo,
   socketPath: string,
+  context: extensionApi.ExtensionContext,
 ): Promise<void> {
   const lifecycle: extensionApi.ProviderConnectionLifecycle = {
     start: async (context, logger): Promise<void> => {
@@ -199,16 +199,20 @@ async function registerProviderFor(
     delete: async (logger): Promise<void> => {
       const macadamCli = await macadam.getExecutable();
       await extensionApi.process.exec(macadamCli, ['rm'], {
-        logger
+        logger,
       });
     },
   };
+
+  const providerConnectionShellAccess = new ProviderConnectionShellAccessImpl(machineInfo);
+  context.subscriptions.push(providerConnectionShellAccess);
 
   const containerProviderConnection: extensionApi.ContainerProviderConnection = {
     name: 'macadam',
     displayName: 'Macadam',
     type: 'podman',
     status: () => macadamMachinesStatuses.get(machineInfo.image) ?? 'unknown',
+    shellAccess: providerConnectionShellAccess,
     lifecycle,
     endpoint: {
       socketPath,
@@ -218,7 +222,6 @@ async function registerProviderFor(
   // Since Podman 4.5, machines are using the same path for all sockets of machines
   // so a machine is not distinguishable from another one.
   // monitorPodmanSocket(socketPath, machineInfo.name);
-  containerProviderConnections.set(machineInfo.image, containerProviderConnection);
 
   const disposable = provider.registerContainerProviderConnection(containerProviderConnection);
   provider.updateStatus('ready');
@@ -238,9 +241,10 @@ async function registerProviderFor(
 async function updateMachines(
   macadam: Macadam,
   provider: extensionApi.Provider,
+  context: extensionApi.ExtensionContext,
 ): Promise<void> {
   // init machines available
-  let machineListOutput = await getJSONMachineList(macadam);
+  const machineListOutput = await getJSONMachineList(macadam);
 
   if (machineListOutput.error) {
     // TODO handle the error
@@ -260,7 +264,6 @@ async function updateMachines(
       status = 'starting';
     }
 
-
     const previousStatus = macadamMachinesStatuses.get(machine.Image);
     if (previousStatus !== status) {
       // notify status change
@@ -268,7 +271,7 @@ async function updateMachines(
       macadamMachinesStatuses.set(machine.Image, status);
     }
 
-    // TODO update cpu/memory/disk usage 
+    // TODO update cpu/memory/disk usage
 
     macadamMachinesInfo.set(machine.Image, {
       image: machine.Image,
@@ -283,12 +286,6 @@ async function updateMachines(
     if (!macadamMachinesStatuses.has(machine.Image)) {
       macadamMachinesStatuses.set(machine.Image, status);
     }
-
-    /*const containerProviderConnection = containerProviderConnections.get(machine.Name);
-    const podmanMachineInfo = podmanMachinesInfo.get(machine.Name);
-    if (containerProviderConnection && podmanMachineInfo) {
-      await updateContainerConfiguration(containerProviderConnection, podmanMachineInfo);
-    } */
   }
 
   // remove machine no longer there
@@ -305,10 +302,15 @@ async function updateMachines(
   );
   await Promise.all(
     connectionsToCreate.map(async machineName => {
-
       const podmanMachineInfo = macadamMachinesInfo.get(machineName);
       if (podmanMachineInfo) {
-        await registerProviderFor(macadam, provider, podmanMachineInfo, 'socketPath');
+        await registerProviderFor(
+          macadam,
+          provider,
+          podmanMachineInfo,
+          '/var/folders/n4/n5hyrstd2739lcy9903jn8f40000gn/T/podman/macadam.sock',
+          context,
+        );
       }
     }),
   );
@@ -359,26 +361,29 @@ async function updateMachines(
   }
 }
 
-
 async function monitorMachines(
   macadam: Macadam,
   provider: extensionApi.Provider,
+  context: extensionApi.ExtensionContext,
 ): Promise<void> {
   // call us again
   if (!stopLoop) {
     try {
-      await updateMachines(macadam, provider);
+      await updateMachines(macadam, provider, context);
     } catch (error) {
       // ignore the update of machines
     }
     await timeout(5000);
-    monitorMachines(macadam, provider).catch((error: unknown) => {
+    monitorMachines(macadam, provider, context).catch((error: unknown) => {
       console.error('Error monitoring podman machines', error);
     });
   }
 }
 
-async function createProvider(extensionContext: extensionApi.ExtensionContext, macadam: Macadam): Promise<extensionApi.Provider> {
+async function createProvider(
+  extensionContext: extensionApi.ExtensionContext,
+  macadam: Macadam,
+): Promise<extensionApi.Provider> {
   const providerOptions: extensionApi.ProviderOptions = {
     name: 'Macadam',
     id: 'macadam',
@@ -463,15 +468,15 @@ async function createVM(
   if (imagePath) {
     parameters.push(imagePath);
     telemetryRecords.imagePath = 'custom';
-  } 
-  
+  }
+
   // push args for demo
   parameters.push('--ssh-identity-path');
   parameters.push(path.join(path.dirname(imagePath), 'id_ed25519'));
   parameters.push('--username');
   parameters.push('core');
 
-/*   else if (params['macadam.factory.machine.image-uri']) {
+  /*   else if (params['macadam.factory.machine.image-uri']) {
     const imageUri = params['macadam.factory.machine.image-uri'].trim();
     parameters.push('--image-path');
     if (imageUri.startsWith('https://') || imageUri.startsWith('http://')) {
@@ -486,10 +491,9 @@ async function createVM(
   /* if (!telemetryRecords.imagePath) {
     telemetryRecords.imagePath = 'default';
   } */
-  
 
   // name at the end
- /*  if (params['macadam.factory.machine.name']) {
+  /*  if (params['macadam.factory.machine.name']) {
     parameters.push(params['macadam.factory.machine.name']);
     telemetryRecords.customName = params['macadam.factory.machine.name'];
     telemetryRecords.defaultName = false;

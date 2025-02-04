@@ -16,7 +16,7 @@
  * SPDX-License-Identifier: Apache-2.0
  ***********************************************************************/
 
-import * as extensionApi from '@podman-desktop/api';
+import type * as extensionApi from '@podman-desktop/api';
 
 /**
  * LoggerDelegator class implements the Logger interface and acts as a delegator for multiple Logger instances.
@@ -35,33 +35,33 @@ import * as extensionApi from '@podman-desktop/api';
  * the necessary functionalities.
  */
 export class LoggerDelegator implements extensionApi.Logger {
-    private loggers: extensionApi.Logger[] = [];
-  
-    constructor(...loggersOrContexts: (extensionApi.Logger | extensionApi.LifecycleContext | undefined)[]) {
-      loggersOrContexts.forEach(loggerOrContext => {
-        if (loggerOrContext === undefined) {
-          return;
-        }
-        if (typeof loggerOrContext.log === 'object') {
-          this.loggers.push(loggerOrContext.log);
-        } else if (typeof loggerOrContext.log === 'function') {
-          this.loggers.push(loggerOrContext as extensionApi.Logger);
-        }
-      });
-    }
-  
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    log(...data: any[]): void {
-      this.loggers.forEach(logger => logger.log(...data));
-    }
-  
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    error(...data: any[]): void {
-      this.loggers.forEach(logger => logger.error(...data));
-    }
-  
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    warn(...data: any[]): void {
-      this.loggers.forEach(logger => logger.warn(...data));
-    }
+  private loggers: extensionApi.Logger[] = [];
+
+  constructor(...loggersOrContexts: (extensionApi.Logger | extensionApi.LifecycleContext | undefined)[]) {
+    loggersOrContexts.forEach(loggerOrContext => {
+      if (loggerOrContext === undefined) {
+        return;
+      }
+      if (typeof loggerOrContext.log === 'object') {
+        this.loggers.push(loggerOrContext.log);
+      } else if (typeof loggerOrContext.log === 'function') {
+        this.loggers.push(loggerOrContext as extensionApi.Logger);
+      }
+    });
   }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  log(...data: any[]): void {
+    this.loggers.forEach(logger => logger.log(...data));
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  error(...data: any[]): void {
+    this.loggers.forEach(logger => logger.error(...data));
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  warn(...data: any[]): void {
+    this.loggers.forEach(logger => logger.warn(...data));
+  }
+}

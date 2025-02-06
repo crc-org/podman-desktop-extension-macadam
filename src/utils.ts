@@ -18,10 +18,8 @@
 
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { existsSync } from 'node:fs';
 
-import * as extensionApi from '@podman-desktop/api';
-
-const macosExtraPath = '/opt/podman/bin:/usr/local/bin:/opt/homebrew/bin:/opt/local/bin';
 const localBinDir = '/usr/local/bin';
 
 /**
@@ -49,47 +47,22 @@ export function getSystemBinaryPath(binaryName: string): string {
 
 /**
  * Given an executable name, it will find where it is installed on the system.
- * It first try to search it system-wide, then in the extension storage.
+ * It first try to search it in the system-wide folder, then in the extension storage  
  * @param executable
  */
-export async function whereBinary(storagePath: string, executable: string): Promise<string> {
-  const PATH = getEnvPATH() ?? '';
-  // grab full path for Linux and mac
-  if (extensionApi.env.isLinux || extensionApi.env.isMac) {
-    try {
-      const { stdout: fullPath } = await extensionApi.process.exec('which', [executable], { env: { PATH } });
-      return fullPath;
-    } catch (err) {
-      console.warn('Error getting full path', err);
-    }
-  } else if (extensionApi.env.isWindows) {
-    // grab full path for Windows
-    try {
-      const { stdout: fullPath } = await extensionApi.process.exec('where.exe', [executable], {
-        env: { PATH },
-      });
-      // remove all line break/carriage return characters from full path
-      return fullPath.replace(/(\r\n|\n|\r)/gm, '');
-    } catch (err) {
-      console.warn('Error getting full path', err);
-    }
+export async function whereBinary(storagePath: string, binaryName: string): Promise<string> {
+  const macadamSystemWidePath = getSystemBinaryPath(binaryName);
+  if (existsSync(macadamSystemWidePath)) {
+    return macadamSystemWidePath;
   }
 
-  // if it's not installed system wide it uses the extension storage path
-  return resolve(storagePath, 'bin', executable);
-}
-
-function getEnvPATH(): string | undefined {
-  const env = process.env;
-  if (extensionApi.env.isMac) {
-    if (!env.PATH) {
-      return macosExtraPath;
-    } else {
-      return env.PATH.concat(':').concat(macosExtraPath);
-    }
-  } else {
-    return env.PATH;
+  const macadamStoragePath = resolve(storagePath, 'bin', binaryName);
+  if (existsSync(macadamStoragePath)) {
+    return macadamStoragePath;
   }
+
+  // if it's not installed either in the extension storage path or system wide throw an error 
+  throw new Error('no macadam binary found');
 }
 
 export function getErrorMessage(err: unknown): string {

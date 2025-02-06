@@ -402,20 +402,19 @@ async function createProvider(
 
   extensionContext.subscriptions.push(provider);
 
-  // enable factory - only on mac atm as i'm using it for testing
-  if (extensionApi.env.isMac) {
-    provider.setContainerProviderConnectionFactory({
-      create: (
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        params: { [key: string]: any },
-        logger?: extensionApi.Logger,
-        token?: extensionApi.CancellationToken,
-      ) => {
-        return createVM(macadam, params, logger, token);
-      },
-      creationDisplayName: 'Virtual machine',
-    });
-  }
+  // enable factory
+  provider.setContainerProviderConnectionFactory({
+    create: (
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      params: { [key: string]: any },
+      logger?: extensionApi.Logger,
+      token?: extensionApi.CancellationToken,
+    ) => {
+      return createVM(macadam, params, logger, token);
+    },
+    creationDisplayName: 'Virtual machine',
+  });
+  
 
   return provider;
 }

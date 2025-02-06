@@ -17,6 +17,7 @@
  ***********************************************************************/
 
 import { normalize } from 'node:path';
+import * as os from 'node:os';
 
 import * as extensionApi from '@podman-desktop/api';
 
@@ -26,11 +27,23 @@ export class Macadam {
   constructor(private readonly storagePath: string) {}
 
   /**
-   * Calculate the name of the macadam executable based on the OS.
+   * Calculate the name of the macadam executable based on the OS and arch.
    * E.g. on macOS arm64 systems it is macadam-darwin-arm64
    */
   getExecutableName(): string {
-    return 'macadam-darwin-arm64';
+    let ext = '';
+    let osName: string = os.platform();
+    if (osName === 'win32') {
+      osName = 'windows';
+      ext = '.exe';
+    }
+
+    let arch = os.arch();
+    if (arch === 'x64') {
+      arch = 'amd64';
+    }
+
+    return `macadam-${osName}-${arch}${ext}`;
   }
 
   /**

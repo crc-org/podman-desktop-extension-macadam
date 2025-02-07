@@ -28,7 +28,7 @@ import { getErrorMessage } from './utils';
 const MACADAM_CLI_NAME = 'macadam';
 const MACADAM_DISPLAY_NAME = 'Macadam';
 const MACADAM_MARKDOWN = `Podman Desktop can help you run RHEL and other linux-based VM by using Macadam.\n\nMore information: Link to macadam here`;
-const stopLoop = false;
+let stopLoop = false;
 
 type StatusHandler = (name: string, event: extensionApi.ProviderConnectionStatus) => void;
 const macadamMachinesInfo = new Map<string, MachineInfo>();
@@ -117,11 +117,18 @@ async function getJSONMachineList(macadam: Macadam): Promise<MachineJSONListOutp
   try {
     const macadamCli = await macadam.getExecutable();
     const { stdout, stderr } = await extensionApi.process.exec(macadamCli, ['list']);
-    list.push(...(JSON.parse(stdout) as MachineJSON[]));
+    console.log(stdout);
+    if (stdout !== '') {
+      console.log("stdout");
+      list.push(...(JSON.parse(stdout) as MachineJSON[]));
+    }    
     error = stderr;
   } catch (err) {
     error = getErrorMessage(err);
   }
+
+  console.log(list.length);
+  console.log(error);
 
   return { list, error };
 }
@@ -186,7 +193,6 @@ async function registerProviderFor(
   macadam: Macadam,
   provider: extensionApi.Provider,
   machineInfo: MachineInfo,
-  socketPath: string,
   context: extensionApi.ExtensionContext,
 ): Promise<void> {
   const lifecycle: extensionApi.ProviderConnectionLifecycle = {
@@ -207,6 +213,8 @@ async function registerProviderFor(
   const providerConnectionShellAccess = new ProviderConnectionShellAccessImpl(machineInfo);
   context.subscriptions.push(providerConnectionShellAccess);
 
+  // we are not really working with a containerProviderConnection of type podman
+  // however it offers most of the things we would need, so it is good for a POC
   const containerProviderConnection: extensionApi.ContainerProviderConnection = {
     name: 'macadam',
     displayName: 'Macadam',
@@ -215,13 +223,9 @@ async function registerProviderFor(
     shellAccess: providerConnectionShellAccess,
     lifecycle,
     endpoint: {
-      socketPath,
+      socketPath: 'no-socket',
     },
   };
-
-  // Since Podman 4.5, machines are using the same path for all sockets of machines
-  // so a machine is not distinguishable from another one.
-  // monitorPodmanSocket(socketPath, machineInfo.name);
 
   const disposable = provider.registerContainerProviderConnection(containerProviderConnection);
   provider.updateStatus('ready');
@@ -245,6 +249,8 @@ async function updateMachines(
 ): Promise<void> {
   // init machines available
   const machineListOutput = await getJSONMachineList(macadam);
+
+  console.log('qui');
 
   if (machineListOutput.error) {
     // TODO handle the error
@@ -308,7 +314,6 @@ async function updateMachines(
           macadam,
           provider,
           podmanMachineInfo,
-          '/var/folders/n4/n5hyrstd2739lcy9903jn8f40000gn/T/podman/macadam.sock',
           context,
         );
       }
@@ -434,34 +439,6 @@ async function createVM(
     telemetryRecords.OS = 'mac';
   }
 
-  /* To be uncommented when init command will support these flags
-  // cpu
-  if (params['macadam.factory.machine.cpus']) {
-    const cpusValue = params['macadam.factory.machine.cpus'];
-    parameters.push('--cpus');
-    parameters.push(cpusValue);
-    telemetryRecords.cpus = cpusValue;
-  }
-
-  // memory
-  if (params['macadam.factory.machine.memory']) {
-    parameters.push('--memory');
-    const memoryAsMiB = +params['macadam.factory.machine.memory'] / (1024 * 1024);
-    // Hyper-V requires VMs to have memory in 2 MB increments. So we round it
-    const roundedMemoryMiB = Math.floor((memoryAsMiB + 1) / 2) * 2;
-    parameters.push(roundedMemoryMiB.toString());
-    telemetryRecords.memory = params['macadam.factory.machine.memory'];
-  }
-
-  // disk size
-  if (params['macadam.factory.machine.diskSize']) {
-    parameters.push('--disk-size');
-    const diskAsGiB = +params['macadam.factory.machine.diskSize'] / (1024 * 1024 * 1024);
-    parameters.push(Math.floor(diskAsGiB).toString());
-    telemetryRecords.diskSize = params['macadam.factory.machine.diskSize'];
-  }
-  */
-
   // image-path
   const imagePath = params['macadam.factory.machine.image-path'];
   if (imagePath) {
@@ -469,36 +446,16 @@ async function createVM(
     telemetryRecords.imagePath = 'custom';
   }
 
+  // ssh identity path
+  const sshIdentityPath = params['macadam.factory.machine.ssh-identity-path'];
+  if (sshIdentityPath) {
+    parameters.push('--ssh-identity-path');
+    parameters.push(sshIdentityPath);
+  }
+  
   // push args for demo
-  parameters.push('--ssh-identity-path');
-  parameters.push(path.join(path.dirname(imagePath), 'id_ed25519'));
   parameters.push('--username');
   parameters.push('core');
-
-  /*   else if (params['macadam.factory.machine.image-uri']) {
-    const imageUri = params['macadam.factory.machine.image-uri'].trim();
-    parameters.push('--image-path');
-    if (imageUri.startsWith('https://') || imageUri.startsWith('http://')) {
-      parameters.push(imageUri);
-      telemetryRecords.imagePath = 'custom-url';
-    } else {
-      parameters.push(`docker://${imageUri}`);
-      telemetryRecords.imagePath = 'custom-registry';
-    }
-  } */
-
-  /* if (!telemetryRecords.imagePath) {
-    telemetryRecords.imagePath = 'default';
-  } */
-
-  // name at the end
-  /*  if (params['macadam.factory.machine.name']) {
-    parameters.push(params['macadam.factory.machine.name']);
-    telemetryRecords.customName = params['macadam.factory.machine.name'];
-    telemetryRecords.defaultName = false;
-  } else {
-    telemetryRecords.defaultName = true;
-  } */
 
   const startTime = performance.now();
   try {
@@ -521,4 +478,9 @@ async function createVM(
     //in the POC we do not send any telemetry
     //sendTelemetryRecords('macadam.machine.init', telemetryRecords, false);
   }
+}
+
+export function deactivate(): void {
+  stopLoop = true;
+  console.log('stopping macadam extension');
 }

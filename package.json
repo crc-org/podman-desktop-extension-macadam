@@ -19,13 +19,14 @@
           "format": "file",
           "scope": "ContainerProviderConnectionFactory",
           "default": "/Users/luca/.crc/machines/crc/crc_test.img",
-          "description": "Image Path (Optional)"
+          "description": "Image Path"
         },
-        "macadam.factory.machine.image-uri": {
+        "macadam.factory.machine.ssh-identity-path": {
           "type": "string",
+          "format": "file",
           "scope": "ContainerProviderConnectionFactory",
-          "description": "Image URL or image reference (Optional)",
-          "placeholder": "Use 'registry/org/image:version' for image reference"
+          "default": "/Users/luca/.crc/machines/crc/id_ecdsa",
+          "description": "Ssh Identity Path"
         },
         "macadam.factory.machine.cpus": {
           "type": "number",

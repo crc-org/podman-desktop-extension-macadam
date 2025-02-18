@@ -16,9 +16,11 @@
  * SPDX-License-Identifier: Apache-2.0
  ***********************************************************************/
 
+import * as extensionApi from '@podman-desktop/api';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { existsSync } from 'node:fs';
+import { macadam } from './extension';
 
 const localBinDir = '/usr/local/bin';
 
@@ -72,4 +74,22 @@ export function getErrorMessage(err: unknown): string {
     return err;
   }
   return '';
+}
+
+export async function execMacadam(
+  args: string[],
+  containersProvider?: string,
+  options?: extensionApi.RunOptions,
+): Promise<extensionApi.RunResult> {
+  const macadamCli = await macadam.getExecutable();
+  const finalOptions: extensionApi.RunOptions = { ...options };
+
+  if (containersProvider) {
+    finalOptions.env = {
+      ...(finalOptions.env ?? {}),
+      CONTAINERS_MACHINE_PROVIDER: containersProvider,
+    };
+  }
+
+  return extensionApi.process.exec(macadamCli, args, finalOptions);
 }

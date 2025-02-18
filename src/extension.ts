@@ -22,7 +22,8 @@ import * as extensionApi from '@podman-desktop/api';
 import { LoggerDelegator } from './logger';
 import { Macadam } from './macadam';
 import { ProviderConnectionShellAccessImpl } from './macadam-machine-stream';
-import { getErrorMessage } from './utils';
+import { execMacadam, getErrorMessage } from './utils';
+import { isHyperVEnabled, isWSLEnabled } from './win/utils';
 
 const MACADAM_CLI_NAME = 'macadam';
 const MACADAM_DISPLAY_NAME = 'Macadam';
@@ -32,6 +33,10 @@ let stopLoop = false;
 type StatusHandler = (name: string, event: extensionApi.ProviderConnectionStatus) => void;
 const macadamMachinesInfo = new Map<string, MachineInfo>();
 const currentConnections = new Map<string, extensionApi.Disposable>();
+
+let wslAndHypervEnabledContextValue = false;
+let wslEnabled = false;
+const WSL_HYPERV_ENABLED_KEY = 'macadam.wslHypervEnabled';
 
 const listeners = new Set<StatusHandler>();
 
@@ -49,6 +54,7 @@ export type MachineInfo = {
   port: number;
   remoteUsername: string;
   identityPath: string;
+  vmType: string;
 };
 
 type MachineJSON = {
@@ -61,6 +67,7 @@ type MachineJSON = {
   Port: number;
   RemoteUsername: string;
   IdentityPath: string;
+  VMType: string;
 };
 
 type MachineJSONListOutput = {
@@ -68,10 +75,12 @@ type MachineJSONListOutput = {
   error: string;
 };
 
+export let macadam: Macadam;
+
 export const macadamMachinesStatuses = new Map<string, extensionApi.ProviderConnectionStatus>();
 
 export async function activate(extensionContext: extensionApi.ExtensionContext): Promise<void> {
-  const macadam = new Macadam(extensionContext.storagePath);
+  macadam = new Macadam(extensionContext.storagePath);
 
   let binary: BinaryInfo | undefined = undefined;
   // retrieve macadam
@@ -81,9 +90,9 @@ export async function activate(extensionContext: extensionApi.ExtensionContext):
     console.error(err);
   }
 
-  const provider = await createProvider(extensionContext, macadam);
+  const provider = await createProvider(extensionContext);
 
-  monitorMachines(macadam, provider, extensionContext).catch((error: unknown) => {
+  monitorMachines(provider, extensionContext).catch((error: unknown) => {
     console.error('Error while monitoring machines', error);
   });
 
@@ -109,17 +118,32 @@ async function timeout(time: number): Promise<void> {
   });
 }
 
-async function getJSONMachineList(macadam: Macadam): Promise<MachineJSONListOutput> {
+async function getJSONMachineList(): Promise<MachineJSONListOutput> {
+  const containerMachineProviders: (string | undefined)[] = [];
+  let hypervEnabled = false;
+  if (await isWSLEnabled()) {
+    wslEnabled = true;
+    containerMachineProviders.push('wsl');
+  } else {
+    wslEnabled = false;
+  }
+
+  if (await isHyperVEnabled()) {
+    hypervEnabled = true;
+    containerMachineProviders.push('hyperv');
+  }
+  // update context "wsl-hyperv enabled" value
+  updateWSLHyperVEnabledContextValue(wslEnabled && hypervEnabled);
+  
   const list: MachineJSON[] = [];
   let error = '';
 
   try {
-    const macadamCli = await macadam.getExecutable();
-    const { stdout, stderr } = await extensionApi.process.exec(macadamCli, ['list']);
-    if (stdout !== '') {
-      list.push(...(JSON.parse(stdout) as MachineJSON[]));
-    }    
-    error = stderr;
+    for (const provider of containerMachineProviders) {
+      const machineListOutput = await getJSONMachineListByProvider(provider);
+      list.push(...machineListOutput.list);
+      error += machineListOutput.error + '\n';
+    }
   } catch (err) {
     error = getErrorMessage(err);
   }
@@ -127,9 +151,17 @@ async function getJSONMachineList(macadam: Macadam): Promise<MachineJSONListOutp
   return { list, error };
 }
 
+export async function getJSONMachineListByProvider(containerMachineProvider?: string): Promise<MachineJSONListOutput> {
+  const { stdout, stderr } = await execMacadam(['list'], containerMachineProvider);
+  return { 
+    list: JSON.parse(stdout) as MachineJSON[], 
+    error: stderr ,
+  };
+}
+
 async function startMachine(
-  macadam: Macadam,
   provider: extensionApi.Provider,
+  machineInfo: MachineInfo,
   context?: extensionApi.LifecycleContext,
   logger?: extensionApi.Logger,
 ): Promise<void> {
@@ -138,8 +170,7 @@ async function startMachine(
   const startTime = performance.now();
 
   try {
-    const macadamCli = await macadam.getExecutable();
-    await extensionApi.process.exec(macadamCli, ['start'], {
+    await execMacadam(['start'], machineInfo.vmType, {
       logger: new LoggerDelegator(context, logger),
     });
     provider.updateStatus('started');
@@ -157,8 +188,8 @@ async function startMachine(
 }
 
 async function stopMachine(
-  macadam: Macadam,
   provider: extensionApi.Provider,
+  machineInfo: MachineInfo,
   context?: extensionApi.LifecycleContext,
   logger?: extensionApi.Logger,
 ): Promise<void> {
@@ -166,8 +197,7 @@ async function stopMachine(
   const telemetryRecords: Record<string, unknown> = {};
   telemetryRecords.provider = 'macadam';
   try {
-    const macadamCli = await macadam.getExecutable();
-    await extensionApi.process.exec(macadamCli, ['stop'], {
+    await execMacadam(['stop'], machineInfo.vmType, {
       logger: new LoggerDelegator(context, logger),
     });
     provider.updateStatus('stopped');
@@ -184,21 +214,19 @@ async function stopMachine(
 }
 
 async function registerProviderFor(
-  macadam: Macadam,
   provider: extensionApi.Provider,
   machineInfo: MachineInfo,
   context: extensionApi.ExtensionContext,
 ): Promise<void> {
   const lifecycle: extensionApi.ProviderConnectionLifecycle = {
     start: async (context, logger): Promise<void> => {
-      await startMachine(macadam, provider, context, logger);
+      await startMachine(provider, machineInfo, context, logger);
     },
     stop: async (context, logger): Promise<void> => {
-      await stopMachine(macadam, provider, context, logger);
+      await stopMachine(provider, machineInfo, context, logger);
     },
     delete: async (logger): Promise<void> => {
-      const macadamCli = await macadam.getExecutable();
-      await extensionApi.process.exec(macadamCli, ['rm'], {
+      await execMacadam(['rm'], machineInfo.vmType, {
         logger,
       });
     },
@@ -237,12 +265,11 @@ async function registerProviderFor(
 }
 
 async function updateMachines(
-  macadam: Macadam,
   provider: extensionApi.Provider,
   context: extensionApi.ExtensionContext,
 ): Promise<void> {
   // init machines available
-  const machineListOutput = await getJSONMachineList(macadam);
+  const machineListOutput = await getJSONMachineList();
 
   if (machineListOutput.error) {
     // TODO handle the error
@@ -279,6 +306,7 @@ async function updateMachines(
       port: machine.Port,
       remoteUsername: machine.RemoteUsername,
       identityPath: machine.IdentityPath,
+      vmType: machine.VMType,
     });
 
     if (!macadamMachinesStatuses.has(machine.Image)) {
@@ -303,7 +331,6 @@ async function updateMachines(
       const podmanMachineInfo = macadamMachinesInfo.get(machineName);
       if (podmanMachineInfo) {
         await registerProviderFor(
-          macadam,
           provider,
           podmanMachineInfo,
           context,
@@ -359,19 +386,18 @@ async function updateMachines(
 }
 
 async function monitorMachines(
-  macadam: Macadam,
   provider: extensionApi.Provider,
   context: extensionApi.ExtensionContext,
 ): Promise<void> {
   // call us again
   if (!stopLoop) {
     try {
-      await updateMachines(macadam, provider, context);
+      await updateMachines(provider, context);
     } catch (error) {
       // ignore the update of machines
     }
     await timeout(5000);
-    monitorMachines(macadam, provider, context).catch((error: unknown) => {
+    monitorMachines(provider, context).catch((error: unknown) => {
       console.error('Error monitoring podman machines', error);
     });
   }
@@ -379,7 +405,6 @@ async function monitorMachines(
 
 async function createProvider(
   extensionContext: extensionApi.ExtensionContext,
-  macadam: Macadam,
 ): Promise<extensionApi.Provider> {
   const providerOptions: extensionApi.ProviderOptions = {
     name: 'Macadam',
@@ -407,7 +432,7 @@ async function createProvider(
       logger?: extensionApi.Logger,
       token?: extensionApi.CancellationToken,
     ) => {
-      return createVM(macadam, params, logger, token);
+      return createVM(params, logger, token);
     },
     creationDisplayName: 'Virtual machine',
   });
@@ -417,7 +442,6 @@ async function createProvider(
 }
 
 async function createVM(
-  macadam: Macadam,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   params: { [key: string]: any },
   logger?: extensionApi.Logger,
@@ -429,6 +453,22 @@ async function createVM(
   const telemetryRecords: Record<string, unknown> = {};
   if (extensionApi.env.isMac) {
     telemetryRecords.OS = 'mac';
+  } else if (extensionApi.env.isWindows) {
+    telemetryRecords.OS = 'win';
+  }
+
+  let provider: string | undefined;
+  if (params['macadam.factory.machine.win.provider']) {
+    provider = params['macadam.factory.machine.win.provider'];
+    telemetryRecords.provider = provider;
+  } else {
+    if (extensionApi.env.isWindows) {
+      provider = wslEnabled ? 'wsl' : 'hyperv';
+      telemetryRecords.provider = provider;
+    } else if (extensionApi.env.isMac) {
+      provider = 'applehv';
+      telemetryRecords.provider = provider;
+    }
   }
 
   // image-path
@@ -451,8 +491,7 @@ async function createVM(
 
   const startTime = performance.now();
   try {
-    const macadamCli = await macadam.getExecutable();
-    await extensionApi.process.exec(macadamCli, parameters, {
+    await execMacadam(parameters, provider, {
       logger,
       token,
     });
@@ -469,6 +508,13 @@ async function createVM(
     telemetryRecords.duration = endTime - startTime;
     //in the POC we do not send any telemetry
     //sendTelemetryRecords('macadam.machine.init', telemetryRecords, false);
+  }
+}
+
+function updateWSLHyperVEnabledContextValue(value: boolean): void {
+  if (wslAndHypervEnabledContextValue !== value) {
+    wslAndHypervEnabledContextValue = value;
+    extensionApi.context.setValue(WSL_HYPERV_ENABLED_KEY, value);
   }
 }
 

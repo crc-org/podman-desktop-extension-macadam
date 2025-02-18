@@ -116,18 +116,13 @@ async function getJSONMachineList(macadam: Macadam): Promise<MachineJSONListOutp
   try {
     const macadamCli = await macadam.getExecutable();
     const { stdout, stderr } = await extensionApi.process.exec(macadamCli, ['list']);
-    console.log(stdout);
     if (stdout !== '') {
-      console.log("stdout");
       list.push(...(JSON.parse(stdout) as MachineJSON[]));
     }    
     error = stderr;
   } catch (err) {
     error = getErrorMessage(err);
   }
-
-  console.log(list.length);
-  console.log(error);
 
   return { list, error };
 }
@@ -248,8 +243,6 @@ async function updateMachines(
 ): Promise<void> {
   // init machines available
   const machineListOutput = await getJSONMachineList(macadam);
-
-  console.log('qui');
 
   if (machineListOutput.error) {
     // TODO handle the error

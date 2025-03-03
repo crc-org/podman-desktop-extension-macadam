@@ -39,12 +39,12 @@ jobs:
 
     - name: Build extension
       env:
-        IMG: ghcr.io/crc-org/podman-desktop-extension-macadam:${VERSION}
+        IMG: ghcr.io/crc-org/podman-desktop-extension-macadam
       shell: bash
       run: |
-        podman build -t ${IMG} -f oci/Containerfile.multistage .
-        podman save -m -o podman-desktop-extension-macadam.tar ${IMG}
-        echo ${IMG} > podman-desktop-extension-macadam.image
+        podman build -t ${IMG}:${VERSION} -f oci/Containerfile.multistage .
+        podman save -m -o podman-desktop-extension-macadam.tar ${IMG}:${VERSION}
+        echo "${IMG}:${VERSION}" > podman-desktop-extension-macadam.image
 
     - name: Upload extension oci flatten images
       uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1

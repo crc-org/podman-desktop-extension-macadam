@@ -134,6 +134,11 @@ async function getJSONMachineList(): Promise<MachineJSONListOutput> {
   }
   // update context "wsl-hyperv enabled" value
   updateWSLHyperVEnabledContextValue(wslEnabled && hypervEnabled);
+
+  if (containerMachineProviders.length === 0) {
+    // in all other cases we set undefined so that it executes normally by using the default container provider
+    containerMachineProviders.push(undefined);
+  }
   
   const list: MachineJSON[] = [];
   let error = '';
@@ -273,6 +278,7 @@ async function updateMachines(
 
   if (machineListOutput.error) {
     // TODO handle the error
+    console.error(machineListOutput.error);
   }
 
   // parse output

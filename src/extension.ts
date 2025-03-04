@@ -231,7 +231,7 @@ async function registerProviderFor(
       await stopMachine(provider, machineInfo, context, logger);
     },
     delete: async (logger): Promise<void> => {
-      await execMacadam(['rm'], machineInfo.vmType, {
+      await execMacadam(['rm', '-f'], machineInfo.vmType, {
         logger,
       });
     },

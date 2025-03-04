@@ -147,7 +147,9 @@ async function getJSONMachineList(): Promise<MachineJSONListOutput> {
     for (const provider of containerMachineProviders) {
       const machineListOutput = await getJSONMachineListByProvider(provider);
       list.push(...machineListOutput.list);
-      error += machineListOutput.error + '\n';
+      if (machineListOutput.error && machineListOutput.error.trim() !== '') {
+        error += machineListOutput.error + '\n';
+      }      
     }
   } catch (err) {
     error = getErrorMessage(err);
@@ -159,7 +161,7 @@ async function getJSONMachineList(): Promise<MachineJSONListOutput> {
 export async function getJSONMachineListByProvider(containerMachineProvider?: string): Promise<MachineJSONListOutput> {
   const { stdout, stderr } = await execMacadam(['list'], containerMachineProvider);
   return { 
-    list: JSON.parse(stdout) as MachineJSON[], 
+    list: stdout ? JSON.parse(stdout) as MachineJSON[] : [], 
     error: stderr ,
   };
 }
